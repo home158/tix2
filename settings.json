@@ -1,1 +1,57 @@
-{"headless":false,"debug": true,"browser":"chrome","advanced":{"adblock_plus_enable":true}}
+{
+    "headless": false,
+    "debug": true,
+    "browser": "chrome",
+    "browse_version": "135",
+    "advanced": {
+        "adblock_plus_enable": true
+    },
+    "tip121":{
+        "note":"台鐵快速訂票",
+        "smart_form_filler":[
+            {
+                "selector" : "input[name='pid']","value" : "XXXX"
+            },
+            {
+                "selector" : "input[name='startStation']","value" : "0900-基隆"
+            },
+            {
+                "selector" : "input[name='endStation']","value" : "1000-臺北"
+            },
+            {
+                "selector" : "input[name='normalQty']","value" : "3"
+            },
+            {
+                "selector" : "#rideDate1","value" : "2025/04/15"
+            },
+            {
+                "selector" : "#trainNoList1","value" : "278"
+            }
+        ]
+
+    },
+    "railway":{
+        "smart_form_filler":[
+            {
+                "selector" : "input[name='username']","value" : "XXXXXXX"
+            },
+            {
+                "selector" : "input[name='password']","value" : "XXXXXXXX"
+            }
+        ]
+    },
+    "294db33674eba75de7e9":{
+        "url" : "294db33674eba75de7e9",
+        "smart_form_filler":[
+            {
+                "selector" : "input[name='username']","value" : "SDFS"
+            },
+            {
+                "selector" : "input[name='email']","value" : "11111@gmail.com"
+            },
+            {
+                "selector" : "input[name='mobile']","value" : "0123456789"
+            }
+        ]
+    }
+}

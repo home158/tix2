@@ -94,6 +94,88 @@ def load_chromdriver_normal(webdriver_path, headless, driver_type, adblock_plus_
 
 
     return driver
+def load_chromdriver_uc(webdriver_path, adblock_plus_enable):
+    import undetected_chromedriver as uc
+
+    chromedriver_path = get_chromedriver_path(webdriver_path)
+
+    options = uc.ChromeOptions()
+    options.page_load_strategy="eager"
+
+    #print("strategy", options.page_load_strategy)
+
+    if adblock_plus_enable:
+        no_google_analytics_path, no_ad_path = get_favoriate_extension_path(webdriver_path)
+        no_google_analytics_folder_path = no_google_analytics_path.replace('.crx','')
+        no_ad_folder_path = no_ad_path.replace('.crx','')
+        load_extension_path = ""
+        if os.path.exists(no_google_analytics_folder_path):
+            load_extension_path += "," + no_google_analytics_folder_path
+        if os.path.exists(no_ad_folder_path):
+            load_extension_path += "," + no_ad_folder_path
+        if len(load_extension_path) > 0:
+            options.add_argument('--load-extension=' + load_extension_path[1:])
+
+    options.add_argument('--disable-features=TranslateUI')
+    options.add_argument('--disable-translate')
+    options.add_argument('--lang=zh-TW')
+    options.add_argument("--disable-blink-features=AutomationControlled")
+
+    options.add_argument("--password-store=basic")
+    options.add_experimental_option("prefs", 
+            {
+                "credentials_enable_service": False, 
+                "profile.password_manager_enabled": False
+            }
+    )
+
+    caps = options.to_capabilities()
+    caps["unhandledPromptBehavior"] = u"accept"
+
+    driver = None
+    if os.path.exists(chromedriver_path):
+        print("Use user driver path:", chromedriver_path)
+        #driver = uc.Chrome(service=chrome_service, options=options, suppress_welcome=False)
+        is_local_chrome_browser_lower = False
+        try:
+            driver = uc.Chrome(executable_path=chromedriver_path, options=options, desired_capabilities=caps, suppress_welcome=False)
+        except Exception as exc:
+            if "cannot connect to chrome" in str(exc):
+                if "This version of ChromeDriver only supports Chrome version" in str(exc):
+                    is_local_chrome_browser_lower = True
+            print(exc)
+            pass
+
+        if is_local_chrome_browser_lower:
+            print("Use local user downloaded chromedriver to lunch chrome browser.")
+            driver_type = "selenium"
+            driver = load_chromdriver_normal(webdriver_path, driver_type, adblock_plus_enable)
+    else:
+        print("Oops! web driver not on path:",chromedriver_path )
+        print('let uc automatically download chromedriver.')
+        driver = uc.Chrome(options=options, desired_capabilities=caps, suppress_welcome=False)
+        stealth(driver,
+            languages=["zh-TW", "zh"],
+            vendor="Google Inc.",
+            platform="Win32",
+            webgl_vendor="Intel Inc.",
+            renderer="Intel Iris OpenGL Engine",
+            fix_hairline=True,
+        )
+
+    if driver is None:
+        print("create web drive object fail!")
+    else:
+        download_dir_path="."
+        params = {
+            "behavior": "allow",
+            "downloadPath": os.path.realpath(download_dir_path)
+        }
+        #print("assign setDownloadBehavior.")
+        driver.execute_cdp_cmd("Page.setDownloadBehavior", params)
+    #print("driver capabilities", driver.capabilities)
+
+    return driver
 def get_driver_by_config(config_dict, driver_type):
     global driver
     # read config.
@@ -111,6 +193,14 @@ def get_driver_by_config(config_dict, driver_type):
         # method 6: Selenium Stealth
         if driver_type != "undetected_chromedriver":
             driver = load_chromdriver_normal(webdriver_path, headless, driver_type, adblock_plus_enable)
+        else:
+            # method 5: uc
+            # multiprocessing not work bug.
+            if platform.system().lower()=="windows":
+                if hasattr(sys, 'frozen'):
+                    from multiprocessing import freeze_support
+                    freeze_support()
+            driver = load_chromdriver_uc(webdriver_path, adblock_plus_enable)
 
     return driver
 def main():

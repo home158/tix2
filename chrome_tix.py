@@ -28,7 +28,7 @@ def get_config_dict():
     config_filepath = os.path.join(app_root, config_json_filename)
     config_dict = None
     if os.path.isfile(config_filepath):
-        with open(config_filepath) as json_data:
+        with open(config_filepath, "r", encoding="utf-8") as json_data:
             config_dict = json.load(json_data)
     return config_dict
 def load_chromdriver_normal(webdriver_path, driver_type, adblock_plus_enable):
@@ -93,7 +93,6 @@ def load_chromdriver_normal(webdriver_path, driver_type, adblock_plus_enable):
 
     return driver
 def get_chromedriver_path(webdriver_path):
-    chromedriver_path = os.path.join(webdriver_path,"chromedriver")
     if platform.system().lower()=="windows":
         chromedriver_path = os.path.join(webdriver_path,"chromedriver.exe")
     return chromedriver_path
@@ -102,7 +101,7 @@ def get_favoriate_extension_path(webdriver_path):
     no_ad_path = os.path.join(webdriver_path,"Adblock_3.15.2.0.crx")
     return no_google_analytics_path, no_ad_path
 
-def load_chromdriver_uc(webdriver_path, adblock_plus_enable):
+def load_chromdriver_uc(webdriver_path,chrome_path, adblock_plus_enable):
     import undetected_chromedriver as uc
 
     chromedriver_path = get_chromedriver_path(webdriver_path)
@@ -136,14 +135,13 @@ def load_chromdriver_uc(webdriver_path, adblock_plus_enable):
                 "profile.password_manager_enabled": False
             }
     )
-
+    options.binary_location = chrome_path
     caps = options.to_capabilities()
     caps["unhandledPromptBehavior"] = u"accept"
 
     driver = None
     if os.path.exists(chromedriver_path):
         print("Use user driver path:", chromedriver_path)
-        #driver = uc.Chrome(service=chrome_service, options=options, suppress_welcome=False)
         is_local_chrome_browser_lower = False
         try:
             driver = uc.Chrome(executable_path=chromedriver_path, options=options, desired_capabilities=caps, suppress_welcome=False)
@@ -189,9 +187,11 @@ def get_driver_by_config(config_dict, driver_type):
     global driver
     # read config.
     browser = config_dict["browser"]
+    browse_version = config_dict["browse_version"]
     print("browser", browser)
     Root_Dir = get_app_root()
-    webdriver_path = os.path.join(Root_Dir, "webdriver")
+    webdriver_path = os.path.join(Root_Dir, "webdriver", browse_version )
+    chrome_path = os.path.join(Root_Dir, browser , browse_version , "GoogleChromePortable.exe")
     print("platform.system().lower():", platform.system().lower())
 
     adblock_plus_enable = config_dict["advanced"]["adblock_plus_enable"]
@@ -208,14 +208,29 @@ def get_driver_by_config(config_dict, driver_type):
                 if hasattr(sys, 'frozen'):
                     from multiprocessing import freeze_support
                     freeze_support()
-            driver = load_chromdriver_uc(webdriver_path, adblock_plus_enable)
+            driver = load_chromdriver_uc(webdriver_path,chrome_path, adblock_plus_enable)
 
     return driver
+def smart_form_filler(driver,section):
+    config_dict = get_config_dict()
+    formfillers = config_dict[section]["smart_form_filler"]
+    for formfiller in formfillers:
+        script_str = """
+        var element = document.querySelector("{}");
+        if (element) {{
+            element.value = "{}";
+            element.dispatchEvent(new Event("input"));
+        }}
+        """
+        formatted_script = script_str.format(formfiller["selector"], formfiller["value"])
+        
+        print(formatted_script)  # Debugging
+        driver.execute_script(formatted_script)
+
 def main():
     config_dict = get_config_dict()
 
     driver_type = 'selenium'
-    #driver_type = 'stealth'
     driver_type = 'undetected_chromedriver'
 
     driver = None
@@ -228,12 +243,7 @@ def main():
     url = ""
     last_url = ""
 
-    # for tixcraft
-    is_verifyCode_editing = False
 
-    # for kktix
-    answer_index = -1
-    kktix_register_status_last = None
 
     DISCONNECTED_MSG = 'Unable to evaluate script: no such window: target window already closed'
 
@@ -247,7 +257,7 @@ def main():
     driver.get("https://www.railway.gov.tw/tra-tip-web/tip")
 
     while True:
-        time.sleep(0.1)
+        time.sleep(2)
 
         is_alert_popup = False
 
@@ -268,8 +278,6 @@ def main():
             url = driver.current_url
         except NoSuchWindowException:
             print('NoSuchWindowException at this url:', url )
-            #print("last_url:", last_url)
-            #print("get_log:", driver.get_log('driver'))
             if DISCONNECTED_MSG in driver.get_log('driver')[-1]['message']:
                 print('quit bot by NoSuchWindowException')
                 driver.quit()
@@ -360,6 +368,14 @@ def main():
                 print(url)
             last_url = url
 
-    
+        # for Railway's  test.
+        if '/tip811/memberLogin' in url:
+            smart_form_filler(driver, "railway")
+        if '/tra-tip-web/tip/tip001/tip121/query' in url:
+            smart_form_filler(driver, "tip121")
+
+        if '/rid=294db33674eba75de7e9' in url:
+            smart_form_filler(driver, "294db33674eba75de7e9")
+
 if __name__ == "__main__":
     main()
