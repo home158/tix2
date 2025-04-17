@@ -165,3 +165,4 @@ chrome/
 logs/
 .env
 webdriver/
+chrome/

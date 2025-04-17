@@ -49,7 +49,7 @@ def load_chromdriver_normal(webdriver_path, driver_type, adblock_plus_enable):
     chrome_options.add_argument('--disable-features=TranslateUI')
     chrome_options.add_argument('--disable-translate')
     chrome_options.add_argument('--lang=zh-TW')
-
+    
     # for navigator.webdriver
     chrome_options.add_experimental_option("excludeSwitches", ['enable-automation'])
     # Deprecated chrome option is ignored: useAutomationExtension
